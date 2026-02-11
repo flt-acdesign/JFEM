@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JFEM User's Guide</title>
+<style>
+    :root {
+        --bg: #ffffff;
+        --fg: #1a1a2e;
+        --accent: #16213e;
+        --highlight: #0f3460;
+        --code-bg: #f0f0f5;
+        --border: #c4c4cc;
+        --table-stripe: #f7f7fb;
+        --ok: #1b7a1b;
+        --warn: #b86800;
+        --fail: #c41c1c;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--fg);
+        background: var(--bg);
+        line-height: 1.65;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 20px 40px 60px;
+    }
+    h1 { font-size: 2em; color: var(--accent); border-bottom: 3px solid var(--highlight); padding-bottom: 10px; margin: 30px 0 20px; }
+    h2 { font-size: 1.5em; color: var(--highlight); border-bottom: 1px solid var(--border); padding-bottom: 6px; margin: 30px 0 14px; }
+    h3 { font-size: 1.2em; color: var(--accent); margin: 20px 0 10px; }
+    p { margin: 8px 0; }
+    ul, ol { margin: 8px 0 8px 28px; }
+    li { margin: 4px 0; }
+    code {
+        font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+        background: var(--code-bg);
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.92em;
+    }
+    pre {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 14px 18px;
+        overflow-x: auto;
+        font-size: 0.9em;
+        line-height: 1.5;
+        margin: 10px 0;
+    }
+    pre code { background: none; padding: 0; }
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 12px 0;
+        font-size: 0.92em;
+    }
+    th, td {
+        border: 1px solid var(--border);
+        padding: 8px 12px;
+        text-align: left;
+    }
+    th { background: var(--accent); color: white; font-weight: 600; }
+    tr:nth-child(even) { background: var(--table-stripe); }
+    .ok { color: var(--ok); font-weight: bold; }
+    .warn { color: var(--warn); font-weight: bold; }
+    .fail { color: var(--fail); font-weight: bold; }
+    .note {
+        background: #e8f0fe;
+        border-left: 4px solid var(--highlight);
+        padding: 10px 16px;
+        margin: 14px 0;
+        border-radius: 0 5px 5px 0;
+    }
+    .warn-box {
+        background: #fff3e0;
+        border-left: 4px solid var(--warn);
+        padding: 10px 16px;
+        margin: 14px 0;
+        border-radius: 0 5px 5px 0;
+    }
+    a { color: var(--highlight); }
+    #toc { background: var(--table-stripe); border: 1px solid var(--border); border-radius: 5px; padding: 16px 24px; margin: 20px 0; }
+    #toc h3 { margin-top: 0; }
+    #toc ol { margin-left: 20px; }
+    #toc li { margin: 3px 0; }
+    .header-banner {
+        text-align: center;
+        padding: 30px 0 10px;
+    }
+    .header-banner h1 {
+        border: none;
+        font-size: 2.6em;
+        letter-spacing: 2px;
+    }
+    .header-banner .subtitle {
+        font-size: 1.1em;
+        color: #555;
+        margin-top: 6px;
+    }
+    .header-banner .version {
+        font-size: 0.95em;
+        color: #888;
+        margin-top: 4px;
+    }
+</style>
+</head>
+<body>
+
+<div class="header-banner">
+    <h1>JFEM</h1>
+    <div class="subtitle">Julia Nastran-Compatible FEM Solver</div>
+    <div class="version">Version 0.10 &mdash; February 2026</div>
+</div>
+
+<nav id="toc">
+<h3>Table of Contents</h3>
+<ol>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#requirements">Requirements</a></li>
+    <li><a href="#installation">Installation</a></li>
+    <li><a href="#quickstart">Quick Start</a></li>
+    <li><a href="#usage">Usage</a>
+        <ol>
+            <li><a href="#usage-solver">Running the Solver</a></li>
+            <li><a href="#usage-f06">Converting F06 to JSON</a></li>
+            <li><a href="#usage-compare">Comparing Results</a></li>
+        </ol>
+    </li>
+    <li><a href="#capabilities">Capabilities</a>
+        <ol>
+            <li><a href="#cap-elements">Supported Elements</a></li>
+            <li><a href="#cap-properties">Supported Properties</a></li>
+            <li><a href="#cap-loads">Supported Loads &amp; BCs</a></li>
+            <li><a href="#cap-output">Output Format</a></li>
+        </ol>
+    </li>
+    <li><a href="#theory">Theory &amp; Implementation</a>
+        <ol>
+            <li><a href="#theory-quad4">CQUAD4 Element</a></li>
+            <li><a href="#theory-tria3">CTRIA3 Element</a></li>
+            <li><a href="#theory-cbar">CBAR Element</a></li>
+            <li><a href="#theory-rbe3">RBE3 Element</a></li>
+            <li><a href="#theory-snorm">SNORM (Surface Normal Averaging)</a></li>
+        </ol>
+    </li>
+    <li><a href="#validation">Validation Results</a></li>
+    <li><a href="#limitations">Known Limitations</a></li>
+    <li><a href="#files">File Reference</a></li>
+</ol>
+</nav>
+
+<!-- ============================================================ -->
+<h1 id="overview">1. Overview</h1>
+
+<p>JFEM is a linear static finite element solver written in Julia that reads MSC Nastran BDF
+(Bulk Data File) input decks and produces results compatible with Nastran SOL 101. It is designed
+for educational use and as a validation tool for structural analysis workflows.</p>
+
+<p>Key features:</p>
+<ul>
+    <li>Reads standard fixed-format and free-format Nastran BDF files</li>
+    <li>Solves linear static analysis (equivalent to SOL 101)</li>
+    <li>Exports results as VTK files (for ParaView visualization) and JSON</li>
+    <li>Includes a validation tool for comparing results against Nastran F06 output</li>
+</ul>
+
+<!-- ============================================================ -->
+<h1 id="requirements">2. Requirements</h1>
+
+<ul>
+    <li><strong>Julia 1.9+</strong> (tested on Julia 1.10 and 1.11)</li>
+    <li>Required Julia packages:
+        <ul>
+            <li><code>LinearAlgebra</code> (stdlib)</li>
+            <li><code>SparseArrays</code> (stdlib)</li>
+            <li><code>Statistics</code> (stdlib)</li>
+            <li><code>Printf</code> (stdlib)</li>
+            <li><code>JSON</code></li>
+            <li><code>WriteVTK</code></li>
+        </ul>
+    </li>
+</ul>
+
+<!-- ============================================================ -->
+<h1 id="installation">3. Installation</h1>
+
+<ol>
+    <li>Clone or download the repository</li>
+    <li>Install required Julia packages:
+<pre><code>julia -e 'using Pkg; Pkg.add(["JSON", "WriteVTK"])'</code></pre>
+    </li>
+    <li>Verify the installation:
+<pre><code>cd JFEM/src
+julia main.jl</code></pre>
+    This should print the usage message.
+    </li>
+</ol>
+
+<!-- ============================================================ -->
+<h1 id="quickstart">4. Quick Start</h1>
+
+<p>To solve a Nastran BDF model:</p>
+
+<pre><code>julia src/main.jl path/to/model.bdf</code></pre>
+
+<p>This will:</p>
+<ol>
+    <li>Parse the BDF file</li>
+    <li>Assemble and solve the stiffness system</li>
+    <li>Write a VTK file (<code>model_Subcase_N.vtu</code>) for ParaView visualization</li>
+    <li>Write a JSON results file (<code>model.JU.JSON</code>)</li>
+</ol>
+
+<p>Output files are placed in a <code>FEM_output/</code> directory next to the BDF file.</p>
+
+<p>To compare with Nastran results:</p>
+
+<pre><code># First, convert the Nastran F06 to JSON:
+julia src/f06_2_json.jl path/to/model.f06
+
+# Then compare:
+julia src/compare_results.jl model_name path/to/FEM_output</code></pre>
+
+<!-- ============================================================ -->
+<h1 id="usage">5. Usage</h1>
+
+<h2 id="usage-solver">5.1 Running the Solver</h2>
+
+<pre><code>julia src/main.jl &lt;model.bdf&gt; [output_dir]</code></pre>
+
+<table>
+    <tr><th>Argument</th><th>Description</th><th>Default</th></tr>
+    <tr><td><code>model.bdf</code></td><td>Path to the Nastran BDF input file</td><td>(required)</td></tr>
+    <tr><td><code>output_dir</code></td><td>Directory for output files</td><td><code>FEM_output/</code> next to the BDF</td></tr>
+</table>
+
+<p>Output files:</p>
+<ul>
+    <li><code>&lt;model&gt;_Subcase_N.vtu</code> &mdash; VTK file with displacements and von Mises stress</li>
+    <li><code>&lt;model&gt;.JU.JSON</code> &mdash; Full results in JSON format (displacements, forces, stresses, strains)</li>
+</ul>
+
+<h2 id="usage-f06">5.2 Converting F06 to JSON</h2>
+
+<pre><code>julia src/f06_2_json.jl &lt;model.f06&gt; [output_dir]</code></pre>
+
+<p>Parses a Nastran F06 output file and writes <code>&lt;model&gt;.NAST.json</code> with the same JSON
+structure as the solver output. This is required for the comparison tool.</p>
+
+<h2 id="usage-compare">5.3 Comparing Results</h2>
+
+<pre><code>julia src/compare_results.jl &lt;model_name&gt; [output_dir]</code></pre>
+
+<p>Compares <code>&lt;model_name&gt;.NAST.json</code> against <code>&lt;model_name&gt;.JU.JSON</code>
+in the output directory. Prints a table with statistical metrics for each result field:</p>
+
+<table>
+    <tr><th>Metric</th><th>Description</th><th>Good Value</th></tr>
+    <tr><td>MaxRef</td><td>Maximum absolute reference value</td><td>&mdash;</td></tr>
+    <tr><td>MaxDiff</td><td>Maximum absolute difference</td><td>Small relative to MaxRef</td></tr>
+    <tr><td>MeanErr</td><td>Mean percentage error (significant values only)</td><td>&lt;10%</td></tr>
+    <tr><td>MedRat</td><td>Median ratio (test/ref)</td><td>Close to 1.0</td></tr>
+    <tr><td>L2 Rat</td><td>L2-norm ratio</td><td>Close to 1.0</td></tr>
+    <tr><td>Sgn%</td><td>Percentage of sign mismatches</td><td>0%</td></tr>
+    <tr><td>Corr</td><td>Pearson correlation coefficient</td><td>Close to 1.0</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h1 id="capabilities">6. Capabilities</h1>
+
+<h2 id="cap-elements">6.1 Supported Elements</h2>
+
+<table>
+    <tr><th>Element</th><th>Type</th><th>Description</th></tr>
+    <tr><td><code>CQUAD4</code></td><td>Shell</td><td>4-node quadrilateral shell with membrane, bending, and transverse shear</td></tr>
+    <tr><td><code>CTRIA3</code></td><td>Shell</td><td>3-node triangular membrane element (constant strain)</td></tr>
+    <tr><td><code>CBAR</code></td><td>Beam</td><td>2-node Timoshenko beam element with 6 DOFs per node</td></tr>
+    <tr><td><code>RBE3</code></td><td>MPC</td><td>Interpolation element for load distribution (not rigid)</td></tr>
+</table>
+
+<h2 id="cap-properties">6.2 Supported Properties</h2>
+
+<table>
+    <tr><th>Card</th><th>Description</th><th>Notes</th></tr>
+    <tr><td><code>PSHELL</code></td><td>Shell properties</td><td>Supports T, 12I/T&sup3; (bending ratio), TS/T (shear correction)</td></tr>
+    <tr><td><code>PBARL</code></td><td>Bar properties (library)</td><td>Currently supports ROD cross-section type only</td></tr>
+    <tr><td><code>MAT1</code></td><td>Isotropic material</td><td>E, G (computed from E and &nu;), &nu;</td></tr>
+    <tr><td><code>CORD2R</code></td><td>Rectangular coordinate system</td><td>For grid point definition (CP) and output (CD)</td></tr>
+</table>
+
+<h2 id="cap-loads">6.3 Supported Loads &amp; BCs</h2>
+
+<table>
+    <tr><th>Card</th><th>Description</th></tr>
+    <tr><td><code>FORCE</code></td><td>Concentrated force at a grid point</td></tr>
+    <tr><td><code>MOMENT</code></td><td>Concentrated moment at a grid point</td></tr>
+    <tr><td><code>PLOAD4</code></td><td>Uniform pressure on shell elements</td></tr>
+    <tr><td><code>LOAD</code></td><td>Linear combination of load sets</td></tr>
+    <tr><td><code>SPC1</code></td><td>Single-point constraint (fixed DOFs)</td></tr>
+    <tr><td><code>SPCADD</code></td><td>Union of SPC sets</td></tr>
+</table>
+
+<h2 id="cap-output">6.4 Output Format</h2>
+
+<p>The JSON output contains:</p>
+<ul>
+    <li><strong>displacements</strong> &mdash; Translational (t1, t2, t3) and rotational (r1, r2, r3) DOFs per grid</li>
+    <li><strong>spc_forces</strong> &mdash; Reaction forces at constrained grids</li>
+    <li><strong>forces</strong> &mdash; Element forces:
+        <ul>
+            <li>CQUAD4/CTRIA3: fx, fy, fxy (membrane), mx, my, mxy (bending), qx, qy (transverse shear)</li>
+            <li>CBAR: axial, shear_1, shear_2, torque, moment_a1, moment_a2, moment_b1, moment_b2</li>
+        </ul>
+    </li>
+    <li><strong>stresses</strong> &mdash; Element stresses at fiber distances z1 (bottom) and z2 (top)</li>
+    <li><strong>strains</strong> &mdash; Element strains at fiber distances z1 and z2</li>
+</ul>
+
+<!-- ============================================================ -->
+<h1 id="theory">7. Theory &amp; Implementation</h1>
+
+<h2 id="theory-quad4">7.1 CQUAD4 Element</h2>
+
+<p>The CQUAD4 implementation uses a Mindlin-Reissner formulation with the following features:</p>
+
+<h3>Element Coordinate System</h3>
+<p>The element x-axis bisects the angle between the two diagonals G1&ndash;G3 and G2&ndash;G4,
+following the Nastran convention. Specifically:</p>
+<ul>
+    <li>The element normal z<sub>e</sub> is computed from the cross product of the diagonals</li>
+    <li>The x-axis direction is: <code>x_raw = normalize(d13) - normalize(d24)</code></li>
+    <li>This is then projected onto the element plane for the final x<sub>e</sub></li>
+    <li>y<sub>e</sub> = z<sub>e</sub> &times; x<sub>e</sub></li>
+</ul>
+
+<h3>Membrane Behavior</h3>
+<p>Standard isoparametric bilinear shape functions with <strong>incompatible modes</strong>
+(Wilson-Taylor bubble functions) to eliminate parasitic shear locking in membrane response.
+The incompatible mode DOFs are eliminated by static condensation at the element level.</p>
+
+<h3>Bending Behavior</h3>
+<p>The bending stiffness uses the standard Mindlin plate formulation with the PSHELL
+12I/T&sup3; scaling parameter (default = 1.0). A value of 4.0 in the PSHELL card means the
+effective bending stiffness is 4&times; the standard plate value.</p>
+
+<h3>Transverse Shear</h3>
+<p>The <strong>MITC4</strong> (Mixed Interpolation of Tensorial Components) formulation is used
+to prevent transverse shear locking. Covariant shear strains are sampled at tying points
+on the element edges and interpolated to the Gauss points.</p>
+
+<h3>Drill Rotation</h3>
+<p>A Hughes-Brezzi drill rotation stabilization is applied with a small stiffness
+proportional to the element area to provide a non-singular DOF 6 (rotation about normal).</p>
+
+<h3>Stress Recovery</h3>
+<p>Gauss-point averaged strains (including incompatible mode contributions) are used for
+stress recovery. The incompatible mode amplitudes are recovered via static condensation:
+<code>&alpha; = -K<sub>bb</sub><sup>-1</sup> K<sub>ba</sub> u</code>.</p>
+
+<h2 id="theory-tria3">7.2 CTRIA3 Element</h2>
+
+<p>Constant strain triangle (CST) membrane element. The strain field is constant across
+the element (no bending capability). A small drill rotation stiffness is added for
+compatibility with shell assemblies.</p>
+
+<h2 id="theory-cbar">7.3 CBAR Element</h2>
+
+<p>The CBAR uses a 3D Timoshenko beam formulation with 6 DOFs per node (3 translations + 3 rotations).</p>
+
+<h3>Shear Deformation</h3>
+<p>For PBARL ROD sections, the Cowper shear correction factor is used:</p>
+<pre><code>&kappa; = 6(1+&nu;) / (7+6&nu;)</code></pre>
+<p>The shear area is <code>A<sub>s</sub> = &kappa; &middot; A</code>. Setting the shear factor
+to zero gives Euler-Bernoulli (no shear deformation) behavior.</p>
+
+<h3>Local Coordinate System</h3>
+<p>The bar x-axis is from node GA to node GB. The y-axis is determined from the orientation
+vector V specified on the CBAR card: <code>z = x &times; V</code>, <code>y = z &times; x</code>.</p>
+
+<h3>Force Recovery</h3>
+<p>Element forces are recovered from <code>f = K<sub>e</sub> u<sub>e</sub></code> in local
+coordinates with Nastran sign conventions:</p>
+<ul>
+    <li>Axial = f<sub>local</sub>[7] (tension positive)</li>
+    <li>Shear_1 = -f<sub>local</sub>[2] (plane 1, xy-plane)</li>
+    <li>Shear_2 = -f<sub>local</sub>[3] (plane 2, xz-plane)</li>
+    <li>Torque = -f<sub>local</sub>[4]</li>
+    <li>Moments at ends A and B follow Nastran equilibrium: M<sub>b1</sub> - M<sub>a1</sub> + V<sub>1</sub>L = 0</li>
+</ul>
+
+<h2 id="theory-rbe3">7.4 RBE3 Element</h2>
+
+<p>RBE3 is an interpolation element (not a rigid body element). It distributes forces applied
+at the reference grid to the dependent grids using a least-squares approach:</p>
+<ol>
+    <li>Forces are distributed equally among dependent grids</li>
+    <li>Moments are distributed as force couples using the cross-product matrix and least-squares</li>
+    <li>Displacements at the reference grid are interpolated as the weighted average of dependent
+        grid displacements, including rigid body offset corrections</li>
+</ol>
+
+<div class="note">
+<strong>Note:</strong> RBE3 elements do not add stiffness to the model. They only affect load
+distribution and displacement interpolation.
+</div>
+
+<h2 id="theory-snorm">7.5 SNORM (Surface Normal Averaging)</h2>
+
+<p>The SNORM parameter (default = 20&deg;) controls the averaging of surface normals at shell
+nodes shared by multiple elements. For each node:</p>
+<ul>
+    <li>If all connected element normals are within the SNORM angle of the averaged normal,
+        the node uses the averaged normal as its local z-axis</li>
+    <li>At fold lines (angle exceeding SNORM), the original coordinate system is preserved</li>
+</ul>
+<p>This affects the transformation of displacements between global and local coordinates.</p>
+
+<!-- ============================================================ -->
+<h1 id="validation">8. Validation Results</h1>
+
+<p>The solver has been validated against MSC Nastran SOL 101 using a wing box model
+(653 nodes, 672 CBAR elements, 692 CQUAD4 elements, 9 CTRIA3 elements, 9 RBE3 elements).</p>
+
+<h3>Displacements</h3>
+<table>
+    <tr><th>DOF</th><th>MedRat</th><th>Corr</th><th>Status</th></tr>
+    <tr><td>t1</td><td>0.992</td><td>1.000</td><td class="ok">OK</td></tr>
+    <tr><td>t2</td><td>0.992</td><td>1.000</td><td class="ok">OK</td></tr>
+    <tr><td>t3</td><td>0.992</td><td>1.000</td><td class="ok">OK</td></tr>
+    <tr><td>r1</td><td>0.992</td><td>1.000</td><td class="ok">OK</td></tr>
+    <tr><td>r2</td><td>&mdash;</td><td>-0.13</td><td class="warn">Shell-only nodes</td></tr>
+    <tr><td>r3</td><td>0.992</td><td>1.000</td><td class="ok">OK</td></tr>
+</table>
+
+<h3>CQUAD4 Forces</h3>
+<table>
+    <tr><th>Field</th><th>MedRat</th><th>Corr</th><th>Status</th></tr>
+    <tr><td>fx</td><td>0.993</td><td>1.000</td><td class="ok">OK</td></tr>
+    <tr><td>fy</td><td>1.012</td><td>0.998</td><td class="ok">OK</td></tr>
+    <tr><td>fxy</td><td>0.980</td><td>1.000</td><td class="ok">OK</td></tr>
+    <tr><td>mx</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+    <tr><td>my</td><td>1.179</td><td>0.972</td><td class="warn">Bending</td></tr>
+    <tr><td>von Mises</td><td>&mdash;</td><td>1.000</td><td class="ok">OK</td></tr>
+</table>
+
+<h3>CBAR Forces</h3>
+<table>
+    <tr><th>Field</th><th>MedRat</th><th>Corr</th><th>Status</th></tr>
+    <tr><td>axial</td><td>0.991</td><td>1.000</td><td class="ok">OK</td></tr>
+    <tr><td>shear_1</td><td>0.685</td><td>&mdash;</td><td class="warn">Displacement-limited</td></tr>
+    <tr><td>shear_2</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+    <tr><td>torque</td><td>0.990</td><td>0.999</td><td class="ok">OK</td></tr>
+    <tr><td>moment_a1</td><td>0.990</td><td>1.000</td><td class="ok">OK</td></tr>
+    <tr><td>moment_b1</td><td>0.990</td><td>1.000</td><td class="ok">OK</td></tr>
+</table>
+
+<div class="warn-box">
+<strong>Note on CBAR shear:</strong> The CBAR shear force is computed as V = dM/dx, which is
+sensitive to small rotation DOF errors. With exact Nastran displacements, the CBAR force recovery
+achieves MedRat = 1.005. The remaining discrepancy is purely displacement-driven.
+</div>
+
+<div class="warn-box">
+<strong>Note on r2 (drill rotation):</strong> At 101 shell-only nodes (not connected to any bar
+elements), the drill rotation DOF has only minimal stabilization stiffness, leading to sign
+inversions compared to Nastran. This does not affect structural response.
+</div>
+
+<!-- ============================================================ -->
+<h1 id="limitations">9. Known Limitations</h1>
+
+<ul>
+    <li><strong>PBARL sections:</strong> Only the ROD cross-section type is implemented. Other types
+        (BOX, I, T, etc.) are not supported.</li>
+    <li><strong>CTRIA3 bending:</strong> The CTRIA3 is a membrane-only element. No bending or
+        transverse shear capability.</li>
+    <li><strong>CQUAD4 transverse shear recovery:</strong> Transverse shear forces (qx, qy) are
+        output as zero. The MITC4 formulation handles shear in the stiffness but the force
+        recovery for qx/qy is not implemented.</li>
+    <li><strong>Coordinate systems:</strong> Only CORD2R (rectangular) is supported. CORD2C
+        (cylindrical) and CORD2S (spherical) are not.</li>
+    <li><strong>Solution types:</strong> Only SOL 101 (linear static). No eigenvalue, frequency
+        response, or nonlinear analysis.</li>
+    <li><strong>GRAV loads:</strong> Gravity loads are detected but not implemented (a warning is
+        printed).</li>
+    <li><strong>Large models:</strong> The direct sparse solver may be slow for models with more
+        than ~50,000 DOFs. No iterative solver option is available.</li>
+    <li><strong>RBE2:</strong> Not supported. Only RBE3 (interpolation) is implemented.</li>
+    <li><strong>CBEAM:</strong> Not supported. Only CBAR.</li>
+    <li><strong>Thermal loads:</strong> Not supported.</li>
+    <li><strong>PBAR (non-library):</strong> Not supported. Use PBARL with ROD type.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h1 id="files">10. File Reference</h1>
+
+<table>
+    <tr><th>File</th><th>Description</th></tr>
+    <tr><td><code>src/main.jl</code></td><td>Main driver: reads BDF, assembles model, solves, exports VTK and JSON</td></tr>
+    <tr><td><code>src/NastranParser.jl</code></td><td>BDF file parser: reads fixed/free format Nastran cards</td></tr>
+    <tr><td><code>src/NastranMath.jl</code></td><td>Coordinate transformation utilities</td></tr>
+    <tr><td><code>src/FEMKernels.jl</code></td><td>Element stiffness matrices and stress/strain recovery</td></tr>
+    <tr><td><code>src/Solver.jl</code></td><td>Assembly, load resolution, linear solve, post-processing</td></tr>
+    <tr><td><code>src/compare_results.jl</code></td><td>Validation tool: compares JU.JSON vs NAST.json</td></tr>
+    <tr><td><code>src/f06_2_json.jl</code></td><td>Converter: Nastran F06 output to JSON format</td></tr>
+</table>
+
+<h3>Module Dependencies</h3>
+<pre><code>main.jl
+  +-- FEMKernels.jl  (module FEM)
+  +-- NastranMath.jl  (module NastranMath)
+  +-- NastranParser.jl (module NastranParser)
+  +-- Solver.jl       (module Solver, uses FEM and NastranMath)</code></pre>
+
+<hr style="margin-top: 40px;">
+<p style="text-align: center; color: #888; font-size: 0.85em;">
+    JFEM v0.10 &mdash; Julia Nastran-Compatible FEM Solver<br>
+    February 2026
+</p>
+
+</body>
+</html>
